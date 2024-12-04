@@ -1,2 +1,59 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+def encode_message_in_image(image_path, message, output_image_path):
+    # Convert the message to binary (ASCII encoding) and add a "stop" marker
+    binary_message = ''.join(format(ord(char), '08b') for char in message) + '00000000'  # Stop byte
+
+    # Open the BMP image in binary mode
+    with open(image_path, 'rb') as img_file:
+        img_data = img_file.read()
+
+    # Create a modifiable bytearray from the image data
+    modified_image_data = bytearray(img_data)
+
+    # Modify the least significant bit (LSB) of each byte to encode the message
+    message_index = 0
+    for i in range(len(modified_image_data)):
+        if message_index < len(binary_message):
+            # Replace the LSB of the current byte with the current message bit
+            modified_image_data[i] = (modified_image_data[i] & 0b11111110) | int(binary_message[message_index])
+            message_index += 1
+
+    # Save the modified image
+    with open(output_image_path, 'wb') as img_file:
+        img_file.write(modified_image_data)
+
+    print(f"Message encoded successfully and saved in '{output_image_path}'")
+
+
+def decode_message_from_image(image_path):
+    # Open the BMP image in binary mode
+    with open(image_path, 'rb') as img_file:
+        img_data = img_file.read()
+
+    # Extract the binary message from the least significant bits (LSB)
+    binary_message = ''
+    for byte in img_data:
+        binary_message += str(byte & 1)  # Get the LSB of each byte
+
+    # Convert the binary message back to text
+    message = ''
+    for i in range(0, len(binary_message), 8):
+        byte = binary_message[i:i + 8]
+        if len(byte) == 8:
+            char = chr(int(byte, 2))
+            if char == '\x00':  # Stop decoding at the stop marker
+                break
+            message += char
+
+    return message
+
+# Example usage
+if __name__ == "__main__":
+    # Input and output image paths
+    input_image = "/Users/mohamedbayomyy/Desktop//Users/mohamedbayomyy/Desktop/encoded image.bmp"  # Path to the original BMP image
+    output_image = "Users/mohamedbayomyy/Desktop//Users/mohamedbayomyy/Desktop/encoded image.bmp"  # Path to save the image with the hidden message
+    secret_message = "Mohamed"  # The secret message to hide
+
+    encode_message_in_image(input_image, secret_message, output_image)
+
+    decoded_message = decode_message_from_image(output_image)
+    print("Decoded message:", decoded_message)
